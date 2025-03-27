@@ -7,13 +7,13 @@ tk.Label(root, text="Binary to hex", font=("consolas", 50)).pack()
 
 
 dontUpdate = False
-def hexEdit(*args):
+def hexEdit(*args): #called when hex value is edited
     global value, dontUpdate
     if dontUpdate:  # If the change was made by the buttons, then dont need to update the buttons
         dontUpdate = False
         return
     
-    if len(hex_StringVar.get()) != 8:
+    if len(hex_StringVar.get()) != 8: #if hex value not 8 characters long
         hex_label["highlightcolor"] = "orange"
         ErrorLabel["text"] = "Must be 8 characters long!"
         return
@@ -22,16 +22,20 @@ def hexEdit(*args):
         [buttons[i].set(value[i]=="1") for i in range(32)]
         hex_label["highlightcolor"] = "green"
         ErrorLabel["text"] = ""
-    except:
+    except: #if invalud hex value entered
         hex_label["highlightcolor"] = "red"
         ErrorLabel["text"] = "Invalid hex value!"
 
 
-class ToggleButton(tk.Button):
-    def __init__(self, index, **kw):
+#Sub class of Button to create a toggle button for binary values
+class ToggleButton(tk.Button):  
+    def __init__(self, index:int, **kw):
         super().__init__(command=self.toggle, **kw)
-        self.state = False
+        self.state = False #1 or 0
         self.index = index
+    
+    def getState(self):
+        return self.state
     
     def toggle(self):
         self.state = not self.state
@@ -39,12 +43,11 @@ class ToggleButton(tk.Button):
     
     def set(self, newState:bool):
         self.state = newState
-        value[self.index] = newState
         self.__change__()
         
-    def __change__(self):
+    def __change__(self):  #switch from 0 to 1 or 1 to 0
         global dontUpdate
-        if self.state:
+        if self.state: #if value = 1
             self["text"] = "1"
             self["background"] = "black"
             self["foreground"] = "white"
@@ -56,9 +59,10 @@ class ToggleButton(tk.Button):
             value[self.index] = "0"
         self.update()
 
+        #convert binary value to hex value
         hex_num = f'{hex(int("".join(value), 2))[2:]:0>8}'
         hex_StringVar.set(hex_num)
-        dontUpdate = True
+        dontUpdate = True   #Dont need to check for updates to hex value
 
 
 value = ["0" for i in range(32)]  #Current binary value. Stored as array of strings for convenience of conversion
@@ -67,10 +71,10 @@ value = ["0" for i in range(32)]  #Current binary value. Stored as array of stri
 table = tk.Frame(root)
 table.pack()
 
-#Flip buttons
+#Multi-Flip buttons
 d = tk.BooleanVar()
-[tk.Button(table, text="Flip", font=("consolas", 15), command=lambda i=i: (d.set(not buttons[i*8].state), [b.set(d.get()) for b in buttons[i*8:(i+1)*8]])).grid(column=i*8, row=0, columnspan=8) for i in range(4)]
-[tk.Button(table, text="Flip", font=("consolas", 15), command=lambda i=i: (d.set(not buttons[i*4].state), [b.set(d.get()) for b in buttons[i*4:(i+1)*4]])).grid(column=i*4, row=1, columnspan=4) for i in range(8)]
+[tk.Button(table, text="Flip", font=("consolas", 15), command=lambda i=i: (d.set(not buttons[i*8].getState()), [b.set(d.get()) for b in buttons[i*8:(i+1)*8]])).grid(column=i*8, row=0, columnspan=8) for i in range(4)]
+[tk.Button(table, text="Flip", font=("consolas", 15), command=lambda i=i: (d.set(not buttons[i*4].getState()), [b.set(d.get()) for b in buttons[i*4:(i+1)*4]])).grid(column=i*4, row=1, columnspan=4) for i in range(8)]
 
 #Labels from 31 to 0
 [tk.Label(table, text=str(31-i), font=("consolas", 20)).grid(column=i, row=2, padx=(15,0) if i%8==0 else 0) for i in range(32)]
