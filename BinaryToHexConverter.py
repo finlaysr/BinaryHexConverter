@@ -73,8 +73,8 @@ table.pack()
 
 #Multi-Flip buttons
 d = tk.BooleanVar()
-[tk.Button(table, text="Flip", font=("consolas", 15), command=lambda i=i: (d.set(not buttons[i*8].getState()), [b.set(d.get()) for b in buttons[i*8:(i+1)*8]])).grid(column=i*8, row=0, columnspan=8) for i in range(4)]
-[tk.Button(table, text="Flip", font=("consolas", 15), command=lambda i=i: (d.set(not buttons[i*4].getState()), [b.set(d.get()) for b in buttons[i*4:(i+1)*4]])).grid(column=i*4, row=1, columnspan=4) for i in range(8)]
+[tk.Button(table, text="Flip", font=("consolas", 15), command=lambda i=i: (d.set(not buttons[i*8].getState()), [b.set(d.get()) for b in buttons[i*8:(i+1)*8]])).grid(column=i*8, row=0, columnspan=8, padx=(15,0)) for i in range(4)]
+[tk.Button(table, text="Flip", font=("consolas", 15), command=lambda i=i: (d.set(not buttons[i*4].getState()), [b.set(d.get()) for b in buttons[i*4:(i+1)*4]])).grid(column=i*4, row=1, columnspan=4, padx=(15,0) if i%2==0 else 0) for i in range(8)]
 
 #Labels from 31 to 0
 [tk.Label(table, text=str(31-i), font=("consolas", 20)).grid(column=i, row=2, padx=(15,0) if i%8==0 else 0) for i in range(32)]
