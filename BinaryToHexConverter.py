@@ -24,10 +24,9 @@ def hexEdit(*args):
 
 class ToggleButton(tk.Button):
     def __init__(self, index, **kw):
-        super().__init__(**kw)
+        super().__init__(command=self.toggle, **kw)
         self.state = False
         self.index = index
-        self["command"] = self.toggle
     
     def toggle(self):
         self.state = not self.state
@@ -41,13 +40,13 @@ class ToggleButton(tk.Button):
     def __change__(self):
         if self.state:
             self["text"] = "1"
-            self["background"] = "white"
-            self["foreground"] = "black"
+            self["background"] = "black"
+            self["foreground"] = "white"
             value[self.index] = "1"
         else:
             self["text"] = "0"
-            self["background"] = "black"
-            self["foreground"] = "white"
+            self["background"] = "white"
+            self["foreground"] = "black"
             value[self.index] = "0"
         self.update()
 
@@ -60,7 +59,7 @@ d = tk.BooleanVar()
 value = ["0" for i in range(32)]
 [tk.Label(table, text=str(31-i), font=("consolas", 20)).grid(column=i, row=1) for i in range(32)]
 
-buttons = [ToggleButton(master=table, text="0", font=("consolas", 20),  background= "black", foreground="white", index=i) for i in range(32)]
+buttons = [ToggleButton(master=table, text="0", font=("consolas", 20),  background= "white", foreground="black", index=i) for i in range(32)]
 [button.grid(column=i, row=2, padx=(15,0) if i%8==0 else 0) for i, button in enumerate(buttons)]
 
 resultFrame = tk.Frame(root)
