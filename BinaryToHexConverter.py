@@ -57,7 +57,7 @@ d = tk.BooleanVar()
 [tk.Button(table, text="Flip", font=("consolas", 15), command=lambda i=i: (d.set(not buttons[i*8].state), [b.set(d.get()) for b in buttons[i*8:(i+1)*8]])).grid(column=i*8, row=0, columnspan=8) for i in range(4)]
 
 value = ["0" for i in range(32)]
-[tk.Label(table, text=str(31-i), font=("consolas", 20)).grid(column=i, row=1) for i in range(32)]
+[tk.Label(table, text=str(31-i), font=("consolas", 20)).grid(column=i, row=1, padx=(15,0) if i%8==0 else 0) for i in range(32)]
 
 buttons = [ToggleButton(master=table, text="0", font=("consolas", 20),  background= "white", foreground="black", index=i) for i in range(32)]
 [button.grid(column=i, row=2, padx=(15,0) if i%8==0 else 0) for i, button in enumerate(buttons)]
