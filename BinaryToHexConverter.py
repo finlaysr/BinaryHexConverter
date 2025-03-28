@@ -1,5 +1,6 @@
+#ChromeOS update
 import tkinter as tk
-from ctypes import windll
+
 
 root = tk.Tk()
 root.title("Binary to Hexadecimal Converter")
@@ -74,21 +75,21 @@ hex_StringVar.trace_add(mode='write', callback=hexEdit) #update binary value whe
 
 #Multi-Flip buttons
 d = tk.BooleanVar() #temp value to store state of first flip button in each group
-[tk.Button(table, text="Flip", font=("consolas", 15), command=lambda i=i: (d.set(not buttons[i*8].getState()), [b.setState(d.get()) for b in buttons[i*8:(i+1)*8]]))
+[tk.Button(table, text="Flip", font=("consolas", 10), command=lambda i=i: (d.set(not buttons[i*8].getState()), [b.setState(d.get()) for b in buttons[i*8:(i+1)*8]]))
     .grid(column=i*8, row=0, columnspan=8, padx=(15,0)) for i in range(4)]
-[tk.Button(table, text="Flip", font=("consolas", 15), command=lambda i=i: (d.set(not buttons[i*4].getState()), [b.setState(d.get()) for b in buttons[i*4:(i+1)*4]]))
+[tk.Button(table, text="Flip", font=("consolas", 10), command=lambda i=i: (d.set(not buttons[i*4].getState()), [b.setState(d.get()) for b in buttons[i*4:(i+1)*4]]))
     .grid(column=i*4, row=1, columnspan=4, padx=(15,0) if i%2==0 else 0) for i in range(8)]
 
 #Labels from 31 to 0
-[tk.Label(table, text=str(31-i), font=("consolas", 20)).grid(column=i, row=2, padx=(15,0) if i%8==0 else 0) for i in range(32)]
+[tk.Label(table, text=str(31-i), font=("consolas", 10)).grid(column=i, row=2, padx=(15,0) if i%8==0 else 0) for i in range(32)]
 
 #Binary Buttons
-buttons = [ToggleButton(master=table, text="0", font=("consolas", 20),  background= "white", foreground="black", index=i) for i in range(32)]
+buttons = [ToggleButton(master=table, text="0", font=("consolas", 10),  background= "white", foreground="black", index=i) for i in range(32)]
 [button.grid(column=i, row=3, padx=(15,0) if i%8==0 else 0) for i, button in enumerate(buttons)]
 
 #Copy binary value and clear binary value to 0
-tk.Button(table, text="Copy", font=("consolas", 15), foreground='green', command=lambda: (hex_label.clipboard_clear(), hex_label.clipboard_append(''.join(['1' if i else '0' for i in value])))).grid(column=33, row=3, padx=(15,0))
-tk.Button(table, text='Clear', font=("consolas", 15), foreground='red', command=lambda: [hex_StringVar.set('00000000')]).grid(column=33, row=2, padx=(15,0))
+tk.Button(table, text="Copy", font=("consolas", 10), foreground='green', command=lambda: (hex_label.clipboard_clear(), hex_label.clipboard_append(''.join(['1' if i else '0' for i in value])))).grid(column=33, row=3, padx=(15,0))
+tk.Button(table, text='Clear', font=("consolas", 10), foreground='red', command=lambda: [hex_StringVar.set('00000000')]).grid(column=33, row=2, padx=(15,0))
 
 #Frame for hex value
 resultFrame = tk.Frame(root)
@@ -100,12 +101,10 @@ hex_label = tk.Entry(resultFrame, textvariable=hex_StringVar, highlightcolor="gr
 hex_label.grid(column=1, row=0, pady=10)
 
 #Copy hex value
-tk.Button(resultFrame, text="Copy", font=("consolas", 15), foreground='green', command=lambda: (hex_label.clipboard_clear(), hex_label.clipboard_append(f'0x{hex_StringVar.get()}'))).grid(column=2, row=0, padx=(15,0))
+tk.Button(resultFrame, text="Copy", font=("consolas", 10), foreground='green', command=lambda: (hex_label.clipboard_clear(), hex_label.clipboard_append(f'0x{hex_StringVar.get()}'))).grid(column=2, row=0, padx=(15,0))
 
 #Label to display errors in entered hex value
-ErrorLabel = tk.Label(root, text="", font=("consolas", 15), foreground="red")
+ErrorLabel = tk.Label(root, text="", font=("consolas", 10), foreground="red")
 ErrorLabel.pack()
 
-
-windll.shcore.SetProcessDpiAwareness(1) #Fixes blurry text
 root.mainloop() #Starts the GUI
