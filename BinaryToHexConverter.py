@@ -1,6 +1,6 @@
-#Callum
+#ChromeOS update
 import tkinter as tk
-from ctypes import windll
+
 
 root = tk.Tk()
 root.title("Binary to Hexadecimal Converter")
@@ -107,6 +107,4 @@ tk.Button(resultFrame, text="Copy", font=("consolas", 15), foreground='green', c
 ErrorLabel = tk.Label(root, text="", font=("consolas", 15), foreground="red")
 ErrorLabel.pack()
 
-
-windll.shcore.SetProcessDpiAwareness(1) #Fixes blurry text
 root.mainloop() #Starts the GUI
