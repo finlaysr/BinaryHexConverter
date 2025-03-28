@@ -6,13 +6,9 @@ root.title("Binary to Hexadecimal Converter")
 tk.Label(root, text="Binary to Hex", font=("consolas", 50)).pack()
 
 
-dontUpdate = False
 def hexEdit(*args):
     """Updates the binary buttons when the hex value is edited"""
-    global value, dontUpdate
-    if dontUpdate:  # If the change was made by the buttons, then dont need to update the buttons
-        dontUpdate = False
-        return
+    global value
     
     if len(hex_StringVar.get()) != 8: #if hex value not 8 characters long
         hex_label["highlightcolor"] = "orange"
@@ -39,8 +35,6 @@ class ToggleButton(tk.Button):
         return value[self.index]
     
     def toggle(self):
-        global dontUpdate
-        dontUpdate = True   #Dont need to check for updates to hex value if update comes from button press
         value[self.index] = not value[self.index]
         self.__change__()
     
@@ -69,9 +63,6 @@ value = [False for i in range(32)]  #Current binary value. Stored as array of bo
 table = tk.Frame(root)
 table.pack()
 
-hex_StringVar = tk.StringVar(value="00000000")  #stores input from text box
-hex_StringVar.trace_add(mode='write', callback=hexEdit) #update binary value when hex value edited
-
 #Multi-Flip buttons
 d = tk.BooleanVar() #temp value to store state of first flip button in each group
 [tk.Button(table, text="Flip", font=("consolas", 15), command=lambda i=i: (d.set(not buttons[i*8].getState()), [b.setState(d.get()) for b in buttons[i*8:(i+1)*8]]))
@@ -88,7 +79,7 @@ buttons = [ToggleButton(master=table, text="0", font=("consolas", 20),  backgrou
 
 #Copy binary value and clear binary value to 0
 tk.Button(table, text="Copy", font=("consolas", 15), foreground='green', command=lambda: (hex_label.clipboard_clear(), hex_label.clipboard_append(''.join(['1' if i else '0' for i in value])))).grid(column=33, row=3, padx=(15,0))
-tk.Button(table, text='Clear', font=("consolas", 15), foreground='red', command=lambda: [hex_StringVar.set('00000000')]).grid(column=33, row=2, padx=(15,0))
+tk.Button(table, text='Clear', font=("consolas", 15), foreground='red', command=lambda: [b.setState(False) for b in buttons]).grid(column=33, row=2, padx=(15,0))
 
 #Frame for hex value
 resultFrame = tk.Frame(root)
@@ -96,7 +87,9 @@ resultFrame.pack()
 tk.Label(resultFrame, text="0x", font=("consolas", 40)).grid(column=0, row=0) #0x on front of entry
 
 #Entry box for hex value
+hex_StringVar = tk.StringVar(value="00000000")  #stores input from text box
 hex_label = tk.Entry(resultFrame, textvariable=hex_StringVar, highlightcolor="green", font=("consolas", 40), highlightthickness=5, width=8, border=0, borderwidth=0) #text box for hex value
+hex_label.bind('<KeyRelease>', hexEdit)
 hex_label.grid(column=1, row=0, pady=10)
 
 #Copy hex value
