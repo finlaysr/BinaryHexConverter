@@ -1,4 +1,4 @@
-#Finlay Robb CES 2025/03/26
+#Finlay Robb CES - 2025/03/26 - Binary to Hex Converter
 import tkinter as tk
 from ctypes import windll
 
