@@ -7,22 +7,74 @@ root.title("Binary to Hexadecimal Converter")
 tk.Label(root, text="Binary to Hex", font=("consolas", 50)).pack()
 
 
-def hexEdit(*args):
-    """Updates the binary buttons when the hex value is edited"""
+class Value:
+    def __init__(self):
+        self.binary = "0"*32
+        self.decimal = 0
+        self.hexVal = "0"
 
-    if len(hex_StringVar.get()) != 8: #if hex value not 8 characters long
-        hex_label["highlightcolor"] = "orange"
-        ErrorLabel["text"] = f"Must be 8 characters long, not {len(hex_StringVar.get())}!"
-        return
-    
-    try:
-        binary = [i =='1' for i in f'{bin(int(hex_StringVar.get(), 16))[2:]:0>32}'] #convert hex to 32 bit binary array
-        [buttons[i].setValue(binary[i]) for i in range(32)]
-        hex_label["highlightcolor"] = "green"
-        ErrorLabel["text"] = ""
-    except: #if invalud hex value entered
-        hex_label["highlightcolor"] = "red"
-        ErrorLabel["text"] = "Invalid hex value - only 0-9, a-f!"
+    def binUpdate(self):
+        print('binUpdate')
+        self.binary = "".join(["1" if b.getValue() else "0" for b in buttons])
+        self.decimal = int(self.binary, 2)
+        dec_StringVar.set(str(self.decimal))
+        self.hexVal = f'{hex(self.decimal)[2:]:0>8}'
+        hex_StringVar.set(self.hexVal)
+        
+
+    def hexUpdate(self, newValue:str, *args):
+        print(f'hexUpdate: "{newValue}"')
+
+        try:
+            if len(newValue) > 8: #if hex value not 8 characters long
+                hex_entry["highlightcolor"] = "orange"
+                hex_errorLabel["text"] = f"Must be less than or equal to 8 characters long, not {len(newValue)}!"
+                return
+            
+            self.hexVal = newValue
+
+            self.decimal = int(self.hexVal, 16) #convert hex to decimal
+            dec_StringVar.set(str(self.decimal))
+
+            self.binary = f'{bin(self.decimal)[2:]:0>32}'
+            [buttons[i].setValue(self.binary[i] == '1', True) for i in range(32)] #update binary value
+
+            hex_entry["highlightcolor"] = "green"
+            hex_errorLabel["text"] = ""
+        except: #if invalid hex value entered
+            hex_entry["highlightcolor"] = "red"
+            hex_errorLabel["text"] = "Invalid hex value - only 0-9, a-f!"
+            
+
+    def decUpdate(self, newValue:str, *args):
+        print(f'decUpdate: "{str(newValue)}"')
+
+        try:
+            if int(newValue) < 0:
+                dec_entry["highlightcolor"] = "orange"
+                dec_errorLabel["text"] = f"Must be > 0!"
+                return
+            
+            if int(newValue) > 2**32 -1:
+                dec_entry["highlightcolor"] = "orange"
+                dec_errorLabel["text"] = f"Number entered cant be greater than {2**32-1}"
+                return
+            
+            self.decimal = int(newValue)
+
+            self.hexVal = f'{hex(self.decimal)[2:]:0>8}'
+            hex_StringVar.set(self.hexVal)
+
+            self.binary = f'{bin(self.decimal)[2:]:0>32}'
+            print(f'{self.binary=}')
+            [buttons[i].setValue(self.binary[i] == '1', True) for i in range(32)] #update binary value
+
+            dec_entry["highlightcolor"] = "green"
+            dec_errorLabel["text"] = ""
+
+        except: #if invalid hex value entered
+            dec_entry["highlightcolor"] = "red"
+            dec_errorLabel["text"] = "Invalid value - only 0-9"
 
 
 class ToggleButton(tk.Button):
@@ -39,11 +91,11 @@ class ToggleButton(tk.Button):
         self.value = not self.value
         self.__change__()
     
-    def setValue(self, newValue:bool):
+    def setValue(self, newValue:bool, dontUpdate=False):
         self.value = newValue
-        self.__change__()
+        self.__change__(dontUpdate)
         
-    def __change__(self):  #switch from 0 to 1 or 1 to 0
+    def __change__(self, dontUpdate=False):  #switch from 0 to 1 or 1 to 0
         if self.getValue(): #if value = 1
             self["text"] = "1"
             self["background"] = "black"
@@ -53,10 +105,11 @@ class ToggleButton(tk.Button):
             self["background"] = "white"
             self["foreground"] = "black"
         self.update()
-        
-        hex_num = f'{hex(int("".join(["1" if b.getValue() else "0" for b in buttons]), 2))[2:]:0>8}' #convert binary value to 8-bit hex value
-        hex_StringVar.set(hex_num) #update hex value in text box
 
+        if not dontUpdate:
+            values.binUpdate()
+
+values = Value()
 
 #Frame for binary buttons and labels
 table = tk.Frame(root)
@@ -77,26 +130,47 @@ buttons = [ToggleButton(master=table, text="0", font=("consolas", 20),  backgrou
 [button.grid(column=i, row=3, padx=(15,0) if i%8==0 else 0) for i, button in enumerate(buttons)]
 
 #Copy binary value and clear binary value to 0
-tk.Button(table, text="Copy", font=("consolas", 15), foreground='green', command=lambda: (hex_label.clipboard_clear(), hex_label.clipboard_append(''.join(['1' if b.getValue() else '0' for b in buttons])))).grid(column=33, row=3, padx=(15,0))
+tk.Button(table, text="Copy", font=("consolas", 15), foreground='green', command=lambda: (hex_entry.clipboard_clear(), hex_entry.clipboard_append(''.join(['1' if b.getValue() else '0' for b in buttons])))).grid(column=33, row=3, padx=(15,0))
 tk.Button(table, text='Clear', font=("consolas", 15), foreground='red', command=lambda: [b.setValue(False) for b in buttons]).grid(column=33, row=2, padx=(15,0))
 
 #Frame for hex value
-resultFrame = tk.Frame(root)
-resultFrame.pack()
-tk.Label(resultFrame, text="0x", font=("consolas", 40)).grid(column=0, row=0) #0x on front of entry
+hexFrame = tk.Frame(root)
+hexFrame.pack()
+tk.Label(hexFrame, text='Hex: ', font=("consolas", 20)).grid(column=0, row=0)
+tk.Label(hexFrame, text="0x", font=("consolas", 40)).grid(column=1, row=0) #0x on front of entry
 
 #Entry box for hex value
 hex_StringVar = tk.StringVar(value="00000000")  #stores input from text box
-hex_label = tk.Entry(resultFrame, textvariable=hex_StringVar, highlightcolor="green", font=("consolas", 40), highlightthickness=5, width=8, border=0, borderwidth=0) #text box for hex value
-hex_label.bind('<KeyRelease>', hexEdit)
-hex_label.grid(column=1, row=0, pady=10)
+hex_entry = tk.Entry(hexFrame, textvariable=hex_StringVar, highlightcolor="green", font=("consolas", 40), highlightthickness=5, width=8, border=0, borderwidth=0) #text box for hex value
+hex_entry.bind('<KeyRelease>', func=lambda l: values.hexUpdate(hex_StringVar.get()))
+hex_entry.grid(column=2, row=0, pady=10)
 
 #Copy hex value
-tk.Button(resultFrame, text="Copy", font=("consolas", 15), foreground='green', command=lambda: (hex_label.clipboard_clear(), hex_label.clipboard_append(f'0x{hex_StringVar.get()}'))).grid(column=2, row=0, padx=(15,0))
+tk.Button(hexFrame, text="Copy", font=("consolas", 15), foreground='green', command=lambda: (hex_entry.clipboard_clear(), hex_entry.clipboard_append(f'0x{hex_StringVar.get()}'))).grid(column=3, row=0, padx=(15,0))
 
 #Label to display errors in entered hex value
-ErrorLabel = tk.Label(root, text="", font=("consolas", 15), foreground="red")
-ErrorLabel.pack()
+hex_errorLabel = tk.Label(root, text="", font=("consolas", 15), foreground="red")
+hex_errorLabel.pack()
+
+
+#Frame for hex value
+decFrame = tk.Frame(root)
+decFrame.pack()
+tk.Label(decFrame, text="Decimal: ", font=("consolas", 20)).grid(column=0, row=0) #0x on front of entry
+
+#Entry box for dec value
+dec_StringVar = tk.StringVar(value='0')  #stores input from text box
+dec_entry = tk.Entry(decFrame, textvariable=dec_StringVar, highlightcolor="green", font=("consolas", 40), highlightthickness=5, width=10, border=0, borderwidth=0) #text box for dec value
+dec_entry.bind('<KeyRelease>', func= lambda l: values.decUpdate(dec_StringVar.get()))
+dec_entry.grid(column=1, row=0, pady=10)
+
+#Copy dec value
+tk.Button(decFrame, text="Copy", font=("consolas", 15), foreground='green', command=lambda: (dec_entry.clipboard_clear(), dec_entry.clipboard_append(dec_StringVar.get()))).grid(column=2, row=0, padx=(15,0))
+
+#Label to display errors in entered dec value
+dec_errorLabel = tk.Label(root, text="", font=("consolas", 15), foreground="red")
+dec_errorLabel.pack()
+
 
 
 windll.shcore.SetProcessDpiAwareness(1) #Fixes blurry text
