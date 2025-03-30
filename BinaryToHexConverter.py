@@ -1,9 +1,11 @@
 #Finlay Robb CES - 2025/03/26 - Binary to Hex Converter
 import tkinter as tk
+from tkinter import ttk
 from ctypes import windll
 
 root = tk.Tk()
 root.title("Binary to Hexadecimal Converter")
+
 tk.Label(root, text="Binary to Hex", font=("consolas", 50)).pack()
 
 
@@ -14,17 +16,19 @@ class Value:
         self.hexVal = "0"
 
     def binUpdate(self):
-        print('binUpdate')
         self.binary = "".join(["1" if b.getValue() else "0" for b in buttons])
-        self.decimal = int(self.binary, 2)
-        dec_StringVar.set(str(self.decimal))
+
+        self.decimal = int(self.binary, 2) #convert binary to decimal
         self.hexVal = f'{hex(self.decimal)[2:]:0>8}'
+
+        if signed.get() and self.binary[0] == '1': #if signed is checked, convert to signed decimal
+            self.decimal = self.decimal - (1 << 32)
+        dec_StringVar.set(str(self.decimal))
+
         hex_StringVar.set(self.hexVal)
         
 
     def hexUpdate(self, newValue:str, *args):
-        print(f'hexUpdate: "{newValue}"')
-
         try:
             if len(newValue) > 8: #if hex value not 8 characters long
                 hex_entry["highlightcolor"] = "orange"
@@ -33,11 +37,13 @@ class Value:
             
             self.hexVal = newValue
 
-            self.decimal = int(self.hexVal, 16) #convert hex to decimal
-            dec_StringVar.set(str(self.decimal))
-
             self.binary = f'{bin(self.decimal)[2:]:0>32}'
             [buttons[i].setValue(self.binary[i] == '1', True) for i in range(32)] #update binary value
+
+            self.decimal = int(self.hexVal, 16) #convert hex to decimal
+            if signed.get() and self.hexVal[0] >= '8': #if signed is checked, convert to signed decimal
+                self.decimal = self.decimal - (1 << 32) #convert to signed decimal
+            dec_StringVar.set(str(self.decimal))
 
             hex_entry["highlightcolor"] = "green"
             hex_errorLabel["text"] = ""
@@ -47,34 +53,37 @@ class Value:
             
 
     def decUpdate(self, newValue:str, *args):
-        print(f'decUpdate: "{str(newValue)}"')
-
         try:
-            if int(newValue) < 0:
+            if int(newValue) < 0 and not signed.get(): #if decimal value is negative and signed is not checked
                 dec_entry["highlightcolor"] = "orange"
-                dec_errorLabel["text"] = f"Must be > 0!"
+                dec_errorLabel["text"] = f"Can't be less than zero unless in signed mode!"
                 return
-            
-            if int(newValue) > 2**32 -1:
+            if (int(newValue) > 2**31 -1 and signed.get()) or (not signed.get() and int(newValue) > 2**32 -1): 
                 dec_entry["highlightcolor"] = "orange"
-                dec_errorLabel["text"] = f"Number entered cant be greater than {2**32-1}"
+                dec_errorLabel["text"] = f"Number entered cant be greater than {2**31-1 if signed.get() else 2**32-1}!"
                 return
-            
+            if int(newValue) < -(2**31) and signed.get(): 
+                dec_entry["highlightcolor"] = "orange"
+                dec_errorLabel["text"] = f"Number entered cant be less than {2**31} in signed mode!"
+                return
+
             self.decimal = int(newValue)
 
-            self.hexVal = f'{hex(self.decimal)[2:]:0>8}'
-            hex_StringVar.set(self.hexVal)
-
-            self.binary = f'{bin(self.decimal)[2:]:0>32}'
-            print(f'{self.binary=}')
+            if self.decimal < 0:
+                self.binary = f'1{bin((2 ** 31) + self.decimal)[2:]:0>31}' #convert to binary
+            else:
+                self.binary = f'{bin(self.decimal)[2:]:0>32}'
             [buttons[i].setValue(self.binary[i] == '1', True) for i in range(32)] #update binary value
+
+            self.hexVal = f'{hex(int(self.binary, 2))[2:]:0>8}'
+            hex_StringVar.set(self.hexVal)
 
             dec_entry["highlightcolor"] = "green"
             dec_errorLabel["text"] = ""
 
         except: #if invalid hex value entered
             dec_entry["highlightcolor"] = "red"
-            dec_errorLabel["text"] = "Invalid value - only 0-9"
+            dec_errorLabel["text"] = "Invalid decimal value - only 0-9"
 
 
 class ToggleButton(tk.Button):
@@ -91,11 +100,11 @@ class ToggleButton(tk.Button):
         self.value = not self.value
         self.__change__()
     
-    def setValue(self, newValue:bool, dontUpdate=False):
+    def setValue(self, newValue:bool, dontUpdate:bool=False):
         self.value = newValue
         self.__change__(dontUpdate)
         
-    def __change__(self, dontUpdate=False):  #switch from 0 to 1 or 1 to 0
+    def __change__(self, dontUpdate:bool=False):  #switch from 0 to 1 or 1 to 0
         if self.getValue(): #if value = 1
             self["text"] = "1"
             self["background"] = "black"
@@ -106,10 +115,14 @@ class ToggleButton(tk.Button):
             self["foreground"] = "black"
         self.update()
 
-        if not dontUpdate:
+        if not dontUpdate:   #don't need to recalculate values if just done that
             values.binUpdate()
 
 values = Value()
+
+
+signed = tk.BooleanVar(value=False) #tempory value to store value of signed checkbox
+tk.Checkbutton(root, text="Signed", variable=signed, font=("consolas", 20), command= values.binUpdate).pack(pady=(0,10)) #checkbox to set signed or unsigned
 
 #Frame for binary buttons and labels
 table = tk.Frame(root)
@@ -133,6 +146,7 @@ buttons = [ToggleButton(master=table, text="0", font=("consolas", 20),  backgrou
 tk.Button(table, text="Copy", font=("consolas", 15), foreground='green', command=lambda: (hex_entry.clipboard_clear(), hex_entry.clipboard_append(''.join(['1' if b.getValue() else '0' for b in buttons])))).grid(column=33, row=3, padx=(15,0))
 tk.Button(table, text='Clear', font=("consolas", 15), foreground='red', command=lambda: [b.setValue(False) for b in buttons]).grid(column=33, row=2, padx=(15,0))
 
+
 #Frame for hex value
 hexFrame = tk.Frame(root)
 hexFrame.pack()
@@ -143,14 +157,14 @@ tk.Label(hexFrame, text="0x", font=("consolas", 40)).grid(column=1, row=0) #0x o
 hex_StringVar = tk.StringVar(value="00000000")  #stores input from text box
 hex_entry = tk.Entry(hexFrame, textvariable=hex_StringVar, highlightcolor="green", font=("consolas", 40), highlightthickness=5, width=8, border=0, borderwidth=0) #text box for hex value
 hex_entry.bind('<KeyRelease>', func=lambda l: values.hexUpdate(hex_StringVar.get()))
-hex_entry.grid(column=2, row=0, pady=10)
+hex_entry.grid(column=2, row=0, pady=(10,0))
 
 #Copy hex value
 tk.Button(hexFrame, text="Copy", font=("consolas", 15), foreground='green', command=lambda: (hex_entry.clipboard_clear(), hex_entry.clipboard_append(f'0x{hex_StringVar.get()}'))).grid(column=3, row=0, padx=(15,0))
 
 #Label to display errors in entered hex value
 hex_errorLabel = tk.Label(root, text="", font=("consolas", 15), foreground="red")
-hex_errorLabel.pack()
+hex_errorLabel.pack(pady=(0,10))
 
 
 #Frame for hex value
@@ -160,17 +174,16 @@ tk.Label(decFrame, text="Decimal: ", font=("consolas", 20)).grid(column=0, row=0
 
 #Entry box for dec value
 dec_StringVar = tk.StringVar(value='0')  #stores input from text box
-dec_entry = tk.Entry(decFrame, textvariable=dec_StringVar, highlightcolor="green", font=("consolas", 40), highlightthickness=5, width=10, border=0, borderwidth=0) #text box for dec value
+dec_entry = tk.Entry(decFrame, textvariable=dec_StringVar, highlightcolor="green", font=("consolas", 40), highlightthickness=5, width=11, border=0, borderwidth=0) #text box for dec value
 dec_entry.bind('<KeyRelease>', func= lambda l: values.decUpdate(dec_StringVar.get()))
-dec_entry.grid(column=1, row=0, pady=10)
+dec_entry.grid(column=1, row=0, pady=0)
 
 #Copy dec value
 tk.Button(decFrame, text="Copy", font=("consolas", 15), foreground='green', command=lambda: (dec_entry.clipboard_clear(), dec_entry.clipboard_append(dec_StringVar.get()))).grid(column=2, row=0, padx=(15,0))
 
 #Label to display errors in entered dec value
 dec_errorLabel = tk.Label(root, text="", font=("consolas", 15), foreground="red")
-dec_errorLabel.pack()
-
+dec_errorLabel.pack(pady=0)
 
 
 windll.shcore.SetProcessDpiAwareness(1) #Fixes blurry text
