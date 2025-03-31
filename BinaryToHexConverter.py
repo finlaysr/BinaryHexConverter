@@ -7,11 +7,12 @@ root = tk.Tk()
 root.title("Binary to Hexadecimal Converter")
 
 tk.Label(root, text="Binary to Hex", font=("consolas", 50)).pack()
+bits = 32
 
 
 class Value:
     def __init__(self):
-        self.binary = "0"*32
+        self.binary = "0"*bits
         self.decimal = 0
         self.hexVal = "0"
 
@@ -19,69 +20,74 @@ class Value:
         self.binary = "".join(["1" if b.getValue() else "0" for b in buttons])
 
         self.decimal = int(self.binary, 2) #convert binary to decimal
-        self.hexVal = f'{hex(self.decimal)[2:]:0>8}'
+        self.hexVal = f'{hex(self.decimal)[2:]:0>{bits//4}}'
 
         if signed.get() and self.binary[0] == '1': #if signed is checked, convert to signed decimal
-            self.decimal = self.decimal - (1 << 32)
+            self.decimal = self.decimal - (1 << bits)
         dec_StringVar.set(str(self.decimal))
 
         hex_StringVar.set(self.hexVal)
         
 
     def hexUpdate(self, newValue:str, *args):
+        dec_errorLabel["text"] = "" #clear decimal error label
         try:
-            if len(newValue) > 8: #if hex value not 8 characters long
+            if len(newValue) > bits//4: #if hex value not 8 characters long
                 hex_entry["highlightcolor"] = "orange"
-                hex_errorLabel["text"] = f"Must be less than or equal to 8 characters long, not {len(newValue)}!"
+                hex_errorLabel["text"] = f"Must be less than or equal to {bits//4} characters long, not {len(newValue)}!"
                 return
+            if "-" in newValue: #if hex value is negative and signed is not checked
+                raise ValueError()
             
-            self.hexVal = newValue
+            self.hexVal = newValue[2:] if newValue[:2].lower() == '0x' else newValue #if 0x is in front of hex value, remove it
+            hex_StringVar.set(self.hexVal) #update hex value
 
-            self.binary = f'{bin(self.decimal)[2:]:0>32}'
-            [buttons[i].setValue(self.binary[i] == '1', True) for i in range(32)] #update binary value
+            self.binary = f'{bin(int(self.hexVal, 16))[2:]:0>{bits}}' #convert hex to binary, ignoring negatives
+            [buttons[i].setValue(self.binary[i] == '1', True) for i in range(bits)] #update binary value
 
             self.decimal = int(self.hexVal, 16) #convert hex to decimal
             if signed.get() and self.hexVal[0] >= '8': #if signed is checked, convert to signed decimal
-                self.decimal = self.decimal - (1 << 32) #convert to signed decimal
+                self.decimal = self.decimal - (1 << bits) #convert to signed decimal
             dec_StringVar.set(str(self.decimal))
 
             hex_entry["highlightcolor"] = "green"
             hex_errorLabel["text"] = ""
-        except: #if invalid hex value entered
+        except ValueError: #if invalid hex value entered
             hex_entry["highlightcolor"] = "red"
             hex_errorLabel["text"] = "Invalid hex value - only 0-9, a-f!"
             
 
     def decUpdate(self, newValue:str, *args):
+        hex_errorLabel["text"] = "" #clear hex error label
         try:
             if int(newValue) < 0 and not signed.get(): #if decimal value is negative and signed is not checked
                 dec_entry["highlightcolor"] = "orange"
                 dec_errorLabel["text"] = f"Can't be less than zero unless in signed mode!"
                 return
-            if (int(newValue) > 2**31 -1 and signed.get()) or (not signed.get() and int(newValue) > 2**32 -1): 
+            if (int(newValue) > 2**(bits-1) -1 and signed.get()) or (not signed.get() and int(newValue) > 2**(bits) -1): #if decimal value is too high
                 dec_entry["highlightcolor"] = "orange"
-                dec_errorLabel["text"] = f"Number entered cant be greater than {2**31-1 if signed.get() else 2**32-1}!"
+                dec_errorLabel["text"] = f"Number entered can't be greater than {2**(bits-1) -1 if signed.get() else 2**(bits) -1}!"
                 return
-            if int(newValue) < -(2**31) and signed.get(): 
+            if int(newValue) < -(2**(bits-1)) and signed.get(): #if decimal value is too low
                 dec_entry["highlightcolor"] = "orange"
-                dec_errorLabel["text"] = f"Number entered cant be less than {2**31} in signed mode!"
+                dec_errorLabel["text"] = f"Number entered can't be less than {2**(bits-1)} in signed mode!"
                 return
 
             self.decimal = int(newValue)
 
             if self.decimal < 0:
-                self.binary = f'1{bin((2 ** 31) + self.decimal)[2:]:0>31}' #convert to binary
+                self.binary = f'1{bin((2 ** (bits-1)) + self.decimal)[2:]:0>{bits-1}}' #convert to binary
             else:
-                self.binary = f'{bin(self.decimal)[2:]:0>32}'
-            [buttons[i].setValue(self.binary[i] == '1', True) for i in range(32)] #update binary value
+                self.binary = f'{bin(self.decimal)[2:]:0>{bits}}'
+            [buttons[i].setValue(self.binary[i] == '1', True) for i in range(bits)] #update binary value
 
-            self.hexVal = f'{hex(int(self.binary, 2))[2:]:0>8}'
+            self.hexVal = f'{hex(int(self.binary, 2))[2:]:0>{bits//4}}' #convert binary to hex
             hex_StringVar.set(self.hexVal)
 
             dec_entry["highlightcolor"] = "green"
             dec_errorLabel["text"] = ""
 
-        except: #if invalid hex value entered
+        except ValueError: #if invalid hex value entered
             dec_entry["highlightcolor"] = "red"
             dec_errorLabel["text"] = "Invalid decimal value - only 0-9"
 
@@ -104,7 +110,7 @@ class ToggleButton(tk.Button):
         self.value = newValue
         self.__change__(dontUpdate)
         
-    def __change__(self, dontUpdate:bool=False):  #switch from 0 to 1 or 1 to 0
+    def __change__(self, dontUpdate:bool=False):  #switch button from 0 to 1 or 1 to 0
         if self.getValue(): #if value = 1
             self["text"] = "1"
             self["background"] = "black"
@@ -118,29 +124,45 @@ class ToggleButton(tk.Button):
         if not dontUpdate:   #don't need to recalculate values if just done that
             values.binUpdate()
 
+
+def generateButtons(newBits:int, table:tk.Frame):
+    """Generates the buttons for the binary values"""
+    global bits, buttons
+    bits = newBits #update bits value
+    [i.destroy() for i in table.winfo_children()] #remove old buttons
+
+    #Multi-Flip buttons
+    d = tk.BooleanVar() #tempory value to store value of first flip button in each group
+    [tk.Button(table, text="Flip", font=("consolas", 15), command=lambda i=i: (d.set(not buttons[i*8].getValue()), [b.setValue(d.get()) for b in buttons[i*8:(i+1)*8]]))
+        .grid(column=i*8, row=0, columnspan=8, padx=(15,0)) for i in range(bits//8)] #multi flip buttons for each group of 8
+    [tk.Button(table, text="Flip", font=("consolas", 15), command=lambda i=i: (d.set(not buttons[i*4].getValue()), [b.setValue(d.get()) for b in buttons[i*4:(i+1)*4]]))
+        .grid(column=i*4, row=1, columnspan=4, padx=(15,0) if i%2==0 else 0) for i in range((bits//4))] #multi flip buttons for each group of 4
+    
+    [tk.Label(table, text=str(bits-1-i), font=("consolas", 20)).grid(column=i, row=2, padx=(15,0) if i%8==0 else 0) for i in range(bits)] #Labels from bits to 0
+    buttons = [ToggleButton(master=table, text="0", font=("consolas", 20),  background= "white", foreground="black", index=i) for i in range(bits)] #Binary Buttons
+    [b.grid(column=i, row=3, padx=(15,0) if i%8==0 else 0) for i, b in enumerate(buttons)] #add the buttons
+
+
 values = Value()
 
-
+options_Frame = tk.Frame(root) #Frame for options
+options_Frame.pack(pady=(0,10))
 signed = tk.BooleanVar(value=False) #tempory value to store value of signed checkbox
-tk.Checkbutton(root, text="Signed", variable=signed, font=("consolas", 20), command= values.binUpdate).pack(pady=(0,10)) #checkbox to set signed or unsigned
+tk.Checkbutton(options_Frame, text="Signed", variable=signed, font=("consolas", 20), command=values.binUpdate).grid(column=0, row=0) #checkbox to set signed or unsigned
+
+tk.Label(options_Frame, text="Bits:", font=("consolas", 20)).grid(column=1, row=0, padx=(10,0)) #Label for bits dropdown menu
+bits_StringVar = tk.IntVar(value=32) #stores value of bits dropdown menu
+bits_OptionMenu = tk.OptionMenu(options_Frame, bits_StringVar, *(4, 8, 16, 32), command=lambda l: [generateButtons(int(l), table), values.binUpdate()])
+bits_OptionMenu.config(font=("consolas", 20))
+root.nametowidget(bits_OptionMenu.menuname).config(font=("consolas", 20))  # Set font for the menu items.
+bits_OptionMenu.grid(column=2, row=0) #dropdown menu to select bit length
+
 
 #Frame for binary buttons and labels
-table = tk.Frame(root)
-table.pack()
+table = tk.Frame(root); table.pack()
 
-#Multi-Flip buttons
-d = tk.BooleanVar() #tempory value to store value of first flip button in each group
-[tk.Button(table, text="Flip", font=("consolas", 15), command=lambda i=i: (d.set(not buttons[i*8].getValue()), [b.setValue(d.get()) for b in buttons[i*8:(i+1)*8]]))
-    .grid(column=i*8, row=0, columnspan=8, padx=(15,0)) for i in range(4)]
-[tk.Button(table, text="Flip", font=("consolas", 15), command=lambda i=i: (d.set(not buttons[i*4].getValue()), [b.setValue(d.get()) for b in buttons[i*4:(i+1)*4]]))
-    .grid(column=i*4, row=1, columnspan=4, padx=(15,0) if i%2==0 else 0) for i in range(8)]
-
-#Labels from 31 to 0
-[tk.Label(table, text=str(31-i), font=("consolas", 20)).grid(column=i, row=2, padx=(15,0) if i%8==0 else 0) for i in range(32)]
-
-#Binary Buttons
-buttons = [ToggleButton(master=table, text="0", font=("consolas", 20),  background= "white", foreground="black", index=i) for i in range(32)]
-[button.grid(column=i, row=3, padx=(15,0) if i%8==0 else 0) for i, button in enumerate(buttons)]
+buttons: list[ToggleButton] = []
+generateButtons(32, table) #generate buttons for binary values
 
 #Copy binary value and clear binary value to 0
 tk.Button(table, text="Copy", font=("consolas", 15), foreground='green', command=lambda: (hex_entry.clipboard_clear(), hex_entry.clipboard_append(''.join(['1' if b.getValue() else '0' for b in buttons])))).grid(column=33, row=3, padx=(15,0))
@@ -154,7 +176,7 @@ tk.Label(hexFrame, text='Hex: ', font=("consolas", 20)).grid(column=0, row=0)
 tk.Label(hexFrame, text="0x", font=("consolas", 40)).grid(column=1, row=0) #0x on front of entry
 
 #Entry box for hex value
-hex_StringVar = tk.StringVar(value="00000000")  #stores input from text box
+hex_StringVar = tk.StringVar(value="0"*(bits//4))  #stores input from text box
 hex_entry = tk.Entry(hexFrame, textvariable=hex_StringVar, highlightcolor="green", font=("consolas", 40), highlightthickness=5, width=8, border=0, borderwidth=0) #text box for hex value
 hex_entry.bind('<KeyRelease>', func=lambda l: values.hexUpdate(hex_StringVar.get()))
 hex_entry.grid(column=2, row=0, pady=(10,0))
@@ -167,21 +189,21 @@ hex_errorLabel = tk.Label(root, text="", font=("consolas", 15), foreground="red"
 hex_errorLabel.pack(pady=(0,10))
 
 
-#Frame for hex value
+#Frame for decimal value
 decFrame = tk.Frame(root)
 decFrame.pack()
-tk.Label(decFrame, text="Decimal: ", font=("consolas", 20)).grid(column=0, row=0) #0x on front of entry
+tk.Label(decFrame, text="Decimal: ", font=("consolas", 20)).grid(column=0, row=0) #Decimal lable on front of entry
 
-#Entry box for dec value
+#Entry box for decimal value
 dec_StringVar = tk.StringVar(value='0')  #stores input from text box
 dec_entry = tk.Entry(decFrame, textvariable=dec_StringVar, highlightcolor="green", font=("consolas", 40), highlightthickness=5, width=11, border=0, borderwidth=0) #text box for dec value
 dec_entry.bind('<KeyRelease>', func= lambda l: values.decUpdate(dec_StringVar.get()))
 dec_entry.grid(column=1, row=0, pady=0)
 
-#Copy dec value
+#Copy decimal value
 tk.Button(decFrame, text="Copy", font=("consolas", 15), foreground='green', command=lambda: (dec_entry.clipboard_clear(), dec_entry.clipboard_append(dec_StringVar.get()))).grid(column=2, row=0, padx=(15,0))
 
-#Label to display errors in entered dec value
+#Label to display errors in entered decimal value
 dec_errorLabel = tk.Label(root, text="", font=("consolas", 15), foreground="red")
 dec_errorLabel.pack(pady=0)
 
