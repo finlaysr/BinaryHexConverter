@@ -20,38 +20,42 @@ class Value:
         self.binary = "".join(["1" if b.getValue() else "0" for b in buttons])
 
         self.decimal = int(self.binary, 2) #convert binary to decimal
-        self.hexVal = f'{hex(self.decimal)[2:]:0>{bits//4}}'
+        
+        self.hexVal = f'{hex(self.decimal)[2:]:0>{bits//4}}' #convert decimal to hex before possibly changing to negative
+        hex_StringVar.set(self.hexVal)
 
         if signed.get() and self.binary[0] == '1': #if signed is checked, convert to signed decimal
             self.decimal = self.decimal - (1 << bits)
         dec_StringVar.set(str(self.decimal))
-
-        hex_StringVar.set(self.hexVal)
         
 
     def hexUpdate(self, newValue:str, *args):
         dec_errorLabel["text"] = "" #clear decimal error label
         try:
-            if len(newValue) > bits//4: #if hex value not 8 characters long
+            if newValue[:2].lower() == '0x': #if 0x is in front of hex value then remove it
+                self.hexVal = newValue[2:]; hex_StringVar.set(self.hexVal) #update hex value with removed 0x
+            else:
+                self.hexVal = newValue
+
+            if len(newValue) > bits//4: #if hex value not correct length
                 hex_entry["highlightcolor"] = "orange"
                 hex_errorLabel["text"] = f"Must be less than or equal to {bits//4} characters long, not {len(newValue)}!"
                 return
-            if "-" in newValue: #if hex value is negative and signed is not checked
+            if "-" in newValue: #negative hex value not allowed
                 raise ValueError()
             
-            self.hexVal = newValue[2:] if newValue[:2].lower() == '0x' else newValue #if 0x is in front of hex value, remove it
-            hex_StringVar.set(self.hexVal) #update hex value
+            self.decimal = int(self.hexVal, 16) #convert hex to decimal (unsigned)
 
-            self.binary = f'{bin(int(self.hexVal, 16))[2:]:0>{bits}}' #convert hex to binary, ignoring negatives
+            self.binary = f'{bin(self.decimal)[2:]:0>{bits}}' #convert decimal to binary, before possible negative conversion
             [buttons[i].setValue(self.binary[i] == '1', True) for i in range(bits)] #update binary value
 
-            self.decimal = int(self.hexVal, 16) #convert hex to decimal
             if signed.get() and self.hexVal[0] >= '8': #if signed is checked, convert to signed decimal
-                self.decimal = self.decimal - (1 << bits) #convert to signed decimal
+                self.decimal -= (1 << bits) #convert to signed decimal
             dec_StringVar.set(str(self.decimal))
 
             hex_entry["highlightcolor"] = "green"
             hex_errorLabel["text"] = ""
+
         except ValueError: #if invalid hex value entered
             hex_entry["highlightcolor"] = "red"
             hex_errorLabel["text"] = "Invalid hex value - only 0-9, a-f!"
@@ -60,25 +64,25 @@ class Value:
     def decUpdate(self, newValue:str, *args):
         hex_errorLabel["text"] = "" #clear hex error label
         try:
-            if int(newValue) < 0 and not signed.get(): #if decimal value is negative and signed is not checked
+            self.decimal = int(newValue)
+
+            if self.decimal < 0 and not signed.get(): #error if decimal value is negative and signed is not checked
                 dec_entry["highlightcolor"] = "orange"
                 dec_errorLabel["text"] = f"Can't be less than zero unless in signed mode!"
                 return
-            if (int(newValue) > 2**(bits-1) -1 and signed.get()) or (not signed.get() and int(newValue) > 2**(bits) -1): #if decimal value is too high
+            if (self.decimal > 2**(bits-1) -1 and signed.get()) or (not signed.get() and self.decimal > 2**(bits) -1): #if decimal value is too high
                 dec_entry["highlightcolor"] = "orange"
                 dec_errorLabel["text"] = f"Number entered can't be greater than {2**(bits-1) -1 if signed.get() else 2**(bits) -1}!"
                 return
-            if int(newValue) < -(2**(bits-1)) and signed.get(): #if decimal value is too low
+            if self.decimal < -(2**(bits-1)) and signed.get(): #if decimal value is too low
                 dec_entry["highlightcolor"] = "orange"
                 dec_errorLabel["text"] = f"Number entered can't be less than {2**(bits-1)} in signed mode!"
                 return
 
-            self.decimal = int(newValue)
-
             if self.decimal < 0:
-                self.binary = f'1{bin((2 ** (bits-1)) + self.decimal)[2:]:0>{bits-1}}' #convert to binary
+                self.binary = f'1{bin((2 ** (bits-1)) + self.decimal)[2:]:0>{bits-1}}' #convert to signed binary
             else:
-                self.binary = f'{bin(self.decimal)[2:]:0>{bits}}'
+                self.binary = f'{bin(self.decimal)[2:]:0>{bits}}' #convert to non signed binary
             [buttons[i].setValue(self.binary[i] == '1', True) for i in range(bits)] #update binary value
 
             self.hexVal = f'{hex(int(self.binary, 2))[2:]:0>{bits//4}}' #convert binary to hex
@@ -150,12 +154,12 @@ options_Frame.pack(pady=(0,10))
 signed = tk.BooleanVar(value=False) #tempory value to store value of signed checkbox
 tk.Checkbutton(options_Frame, text="Signed", variable=signed, font=("consolas", 20), command=values.binUpdate).grid(column=0, row=0) #checkbox to set signed or unsigned
 
-tk.Label(options_Frame, text="Bits:", font=("consolas", 20)).grid(column=1, row=0, padx=(10,0)) #Label for bits dropdown menu
 bits_StringVar = tk.IntVar(value=32) #stores value of bits dropdown menu
 bits_OptionMenu = tk.OptionMenu(options_Frame, bits_StringVar, *(4, 8, 16, 32), command=lambda l: [generateButtons(int(l), table), values.binUpdate()])
 bits_OptionMenu.config(font=("consolas", 20))
 root.nametowidget(bits_OptionMenu.menuname).config(font=("consolas", 20))  # Set font for the menu items.
-bits_OptionMenu.grid(column=2, row=0) #dropdown menu to select bit length
+bits_OptionMenu.grid(column=1, row=0, padx=(20,0)) #dropdown menu to select bit length
+tk.Label(options_Frame, text="bits", font=("consolas", 20)).grid(column=2, row=0) #Label for bits dropdown menu
 
 
 #Frame for binary buttons and labels

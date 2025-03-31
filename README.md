@@ -4,6 +4,5 @@ A converter for Binary, Hex and Decimal numbers written in python using tkinter 
 
 Supports signed numbers and a range of bit lengths from 4 - 32.
 
-![image](https://github.com/user-attachments/assets/dd9a82b9-8295-4352-9acf-507cbef45cd2)
-
+![image](https://github.com/user-attachments/assets/4bf59549-1e0f-45c7-a788-56ff9cab23ea)
 
