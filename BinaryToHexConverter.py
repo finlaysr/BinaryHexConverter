@@ -146,6 +146,10 @@ def generateButtons(newBits:int, table:tk.Frame):
     buttons = [ToggleButton(master=table, text="0", font=("consolas", 20),  background= "white", foreground="black", index=i) for i in range(bits)] #Binary Buttons
     [b.grid(column=i, row=3, padx=(15,0) if i%8==0 else 0) for i, b in enumerate(buttons)] #add the buttons
 
+    #Copy binary value and clear binary value to 0
+    tk.Button(table, text="Copy", font=("consolas", 15), foreground='green', command=lambda: (hex_entry.clipboard_clear(), hex_entry.clipboard_append(''.join(['1' if b.getValue() else '0' for b in buttons])))).grid(column=bits+1, row=3, padx=(15,0))
+    tk.Button(table, text='Clear', font=("consolas", 15), foreground='red', command=lambda: [b.setValue(False) for b in buttons]).grid(column=bits+1, row=2, padx=(15,0))
+
 
 values = Value()
 
@@ -167,11 +171,6 @@ table = tk.Frame(root); table.pack()
 
 buttons: list[ToggleButton] = []
 generateButtons(32, table) #generate buttons for binary values
-
-#Copy binary value and clear binary value to 0
-tk.Button(table, text="Copy", font=("consolas", 15), foreground='green', command=lambda: (hex_entry.clipboard_clear(), hex_entry.clipboard_append(''.join(['1' if b.getValue() else '0' for b in buttons])))).grid(column=33, row=3, padx=(15,0))
-tk.Button(table, text='Clear', font=("consolas", 15), foreground='red', command=lambda: [b.setValue(False) for b in buttons]).grid(column=33, row=2, padx=(15,0))
-
 
 #Frame for hex value
 hexFrame = tk.Frame(root)
