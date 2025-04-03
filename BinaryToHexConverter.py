@@ -161,7 +161,7 @@ signed = tk.BooleanVar(value=False) #tempory value to store value of signed chec
 tk.Checkbutton(options_Frame, text="Signed", variable=signed, font=("consolas", 20), command=values.binUpdate).grid(column=0, row=0) #checkbox to set signed or unsigned
 
 bits_StringVar = tk.IntVar(value=32) #stores value of bits dropdown menu
-bits_OptionMenu = tk.OptionMenu(options_Frame, bits_StringVar, *(4, 8, 16, 32), command=lambda l: [generateButtons(int(l), table), values.binUpdate()])
+bits_OptionMenu = tk.OptionMenu(options_Frame, bits_StringVar, *(4, 8, 16, 32), command=lambda l: [generateButtons(int(l), binFrame), values.binUpdate()])
 bits_OptionMenu.config(font=("consolas", 20))
 root.nametowidget(bits_OptionMenu.menuname).config(font=("consolas", 20))  # Set font for the menu items.
 bits_OptionMenu.grid(column=1, row=0, padx=(20,0)) #dropdown menu to select bit length
