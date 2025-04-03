@@ -17,8 +17,10 @@ class Value:
         self.hexVal = "0"
 
     def binUpdate(self):
-        self.binary = "".join(["1" if b.getValue() else "0" for b in buttons])
+        binFrame.focus_set() #remove focus from hex / decimal entry boxes
+        dec_errorLabel["text"] = ""; hex_errorLabel["text"] = "" #clear decimal and hex error label
 
+        self.binary = "".join(["1" if b.getValue() else "0" for b in buttons])
         self.decimal = int(self.binary, 2) #convert binary to decimal
         
         self.hexVal = f'{hex(self.decimal)[2:]:0>{bits//4}}' #convert decimal to hex before possibly changing to negative
@@ -167,10 +169,10 @@ tk.Label(options_Frame, text="bits", font=("consolas", 20)).grid(column=2, row=0
 
 
 #Frame for binary buttons and labels
-table = tk.Frame(root); table.pack()
+binFrame = tk.Frame(root); binFrame.pack()
 
 buttons: list[ToggleButton] = []
-generateButtons(32, table) #generate buttons for binary values
+generateButtons(32, binFrame) #generate buttons for binary values
 
 #Frame for hex value
 hexFrame = tk.Frame(root)
